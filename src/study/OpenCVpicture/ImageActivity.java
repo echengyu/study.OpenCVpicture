@@ -11,17 +11,23 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.highgui.Highgui;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.objdetect.CascadeClassifier;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -29,6 +35,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -64,6 +71,8 @@ public class ImageActivity extends Activity implements CvCameraViewListener2 {
 	private android.hardware.Camera.Size resolution = null;
 	private SubMenu mResolutionMenu;
 	private MenuItem[] mResolutionMenuItems;
+	
+	private ImageView imageView0;
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
@@ -104,11 +113,18 @@ public class ImageActivity extends Activity implements CvCameraViewListener2 {
 			mOpenCvCameraView.disableView();
 	}
 
-	@Override
-	public void onResume() {
-		super.onResume();
-		OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_3, this, mLoaderCallback);
-	}
+    @Override
+    public void onResume()
+    {
+        super.onResume();
+        if (!OpenCVLoader.initDebug()) {
+            Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_11, this, mLoaderCallback);
+        } else {
+            Log.d("OpenCV", "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
+    }
 
 	public void onDestroy() {
 		super.onDestroy();
@@ -130,6 +146,22 @@ public class ImageActivity extends Activity implements CvCameraViewListener2 {
 				}
 			}
 		}
+		
+		imageView0 = (ImageView)findViewById(R.id.imageView0);
+//		imageView0.setImageResource(R.drawable.why);
+		
+		Mat matPicture = new Mat();
+		Bitmap bt1 = BitmapFactory.decodeResource(getResources(), R.drawable.face);
+		Utils.bitmapToMat(bt1, matPicture);
+		
+		Log.e("matPicture", String.valueOf(matPicture.cols()+", "+matPicture.rows()));
+		
+		Imgproc.Canny(matPicture, matPicture, 128, 255, 3, false);
+		
+		Bitmap bt3 = Bitmap.createBitmap(matPicture.cols(), matPicture.rows(), Config.RGB_565);
+		Utils.matToBitmap(matPicture, bt3);
+		imageView0.setImageBitmap(bt3);
+		
 	}
 
 	public void onCameraViewStopped() {
